@@ -369,6 +369,11 @@ function showColor(size){
   jQuery('.size_link').css('border','1px solid #ddd');
   jQuery('#size_'+size).css('border','1px solid black');
 }
+function home_add_to_cart(id,size_str_id,color_str_id){
+  jQuery('#color_id').val(color_str_id);
+  jQuery('#size_id').val(size_str_id);
+  add_to_cart(id,size_str_id,color_str_id);
+}
 
 function add_to_cart(id,size_str_id,color_str_id){
   jQuery('#add_to_cart_msg').html('');
@@ -392,9 +397,48 @@ function add_to_cart(id,size_str_id,color_str_id){
       url:'/add_to_cart',
       data:jQuery('#frmAddToCart').serialize(),
       type:'post',
+     
       success:function(result){
+        var totalPrice = 0;
         alert('Product '+result.msg)
+        if(result.totalTtem==0)
+        {
+          jQuery('.aa-cart-notify').html('0');
+          jQuery('.aa-cartbox-summary').remove();
+        }
+        else{
+      
+          jQuery('.aa-cart-notify').html(result.totalTtem);
+          var html= '<ul>';
+          jQuery.each(result.data,function(arrKey,arrVal){
+            totalPrice = parseInt(totalPrice)+(parseInt(arrVal.qty)*parseInt(arrVal.price));
+            html+='<li><a class="aa-cartbox-img" href="#"><img src="'+product_image+'/'+arrVal.image+'" alt="img"></a><div class="aa-cartbox-info"><h4><a href="#">'+arrVal.name+'</a></h4><p>'+arrVal.qty+' * Tk '+arrVal.price+'</p></div></span></a></li>';
+
+          });
+          
+
+        }
+        html+='<li><span class="aa-cartbox-total-title">Total</span><span class="aa-cartbox-total-price"> '+totalPrice+'</span></li>';
+        html+='</ul><a class="aa-cartbox-checkout aa-primary-btn" href="checkout">Checkout</a>';
+        jQuery('.aa-cartbox-summary').html(html);
       }
     });
   }
+}
+function updateqty(pid,size,color,attr_id,price)
+{
+  jQuery('#color_id').val(color);
+  jQuery('#size_id').val(size);
+ var qty = jQuery('#qty'+attr_id).val();
+ jQuery('#qty').val(qty);
+ add_to_cart(pid,size,color);
+ jQuery('#total_price'+attr_id).html('Tk'+qty*price);
+}
+function deleteCartProduct(pid,size,color,attr_id){
+  jQuery('#color_id').val(color);
+  jQuery('#size_id').val(size);
+  jQuery('#qty').val(0)
+  add_to_cart(pid,size,color);
+  //jQuery('#total_price_'+attr_id).html('Rs '+qty*price);
+  jQuery('#cart_box'+attr_id).hide();
 }
