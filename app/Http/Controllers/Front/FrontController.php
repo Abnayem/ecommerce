@@ -97,26 +97,58 @@ class FrontController extends Controller
     }
     public function category(Request $request,$slug)
     {
-        $result['product']=
-            DB::table('products')
-            ->leftJoin('categories','categories.id','=','products.category_id')
-            ->where(['products.status'=>1])
-            ->where(['categories.category_slug'=>$slug])
-            ->get();
+        $sort = "";
+        $sort_text = "";
+        if($request->get('sort')!==null)
+        {
+            $sort=$request->get('sort');
+        }
+        $query=DB::table('products');
+        $query=$query->leftJoin('categories','categories.id','=','products.category_id');
+        $query=$query->leftJoin('products_attr','products_attr.id','=','products.id');
+        $query=$query->where(['products.status'=>1]);
+        $query=$query->where(['categories.category_slug'=>$slug]);
+        if($sort=='name')
+        {
+            $query=$query->orderBy('products.name','asc');
+            $sort_text = "Products Name";
+        }
+        if($sort=='date')
+        {
+            
+         $query=$query->orderBy('products.id','desc');
+         $sort_text = "Products Date";
+        }
+        if($sort=='price_desc')
+        {
+            $query=$query->orderBy('products_attr.price','desc');
+            $sort_text = "Price - Desc";
+        
+        }
+        if($sort=='price_asc')
+        {
+            $query=$query->orderBy('products_attr.price','asc');
+            $sort_text = "Price - Asc";
+        }
+        $query=$query->distinct()->select('products.*');
+        $query=$query->get();
+
+        $result['product']=$query;
 
         foreach($result['product'] as $list1){
-            $result['product_attr'][$list1->id]=
-                DB::table('products_attr')
-                ->leftJoin('sizes','sizes.id','=','products_attr.size_id')
-                ->leftJoin('colors','colors.id','=','products_attr.color_id')
-                ->where(['products_attr.products_id'=>$list1->id])
-                ->get();
+               $query1 =  DB::table('products_attr');
+               $query1 = $query1->leftJoin('sizes','sizes.id','=','products_attr.size_id');
+               $query1 = $query1->leftJoin('colors','colors.id','=','products_attr.color_id');
+               $query1 = $query1->where(['products_attr.products_id'=>$list1->id]);
+               $query1 = $query1->get();
+               $result['product_attr'][$list1->id]=$query1;
             
         }
 
         
 
-        
+        $result['sort']=$sort;
+        $result['sort_text']=$sort_text;
         return view('front.category',$result);
     }
 
