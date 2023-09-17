@@ -2,6 +2,7 @@
 @section('page_title','Category')
 @section('container')
 
+  <!-- product category -->
 <section id="aa-product-category">
    <div class="container">
       <div class="row">
@@ -12,14 +13,14 @@
                      <form action="" class="aa-sort-form">
                         <label for="">Sort by</label>
                         <select name="" onchange="sort_by()" id="sort_by_value">
-                           <option value="1" selected="Default">Default</option>
+                           <option value="" selected="Default">Default</option>
                            <option value="name">Name</option>
                            <option value="price_desc">Price - Desc</option>
                            <option value="price_asc">Price - Asc</option>
                            <option value="date">Date</option>
                         </select>
                      </form>
-                     {{$sort_text}}
+                     {{$sort_txt}}
                   </div>
                   <div class="aa-product-catg-head-right">
                      <a id="grid-catg" href="#"><span class="fa fa-th"></span></a>
@@ -28,14 +29,12 @@
                </div>
                <div class="aa-product-catg-body">
                   <ul class="aa-product-catg">
-                  
+                     <!-- start single product item -->
                      
-                   
-                       
-                         
-                    @if(isset($product[0]))
+                     @if(isset($product[0]))
                        @foreach($product as $productArr)
-                       <li>
+                      
+                        <li>
                           <figure>
                             <a class="aa-product-img" href="{{url('product/'.$productArr->slug)}}"><img src="{{asset('storage/media/'.$productArr->image)}}" alt="{{$productArr->name}}"></a>
                             <a class="aa-add-card-btn" href="javascript:void(0)" onclick="home_add_to_cart('{{$productArr->id}}','{{$product_attr[$productArr->id][0]->size}}','{{$product_attr[$productArr->id][0]->color}}')"><span class="fa fa-shopping-cart"></span>Add To Cart</a>
@@ -52,8 +51,7 @@
                             No data found
                           <figure>
                         <li>
-                        @endif       
-                     
+                        @endif
                      
                   </ul>
                   <!-- quick view modal -->                  
@@ -82,7 +80,7 @@
                         </div>
                         <span id="skip-value-lower" class="example-val">30.00</span>
                         <span id="skip-value-upper" class="example-val">100.00</span>
-                        <button class="aa-filter-btn" type="submit">Filter</button>
+                        <button class="aa-filter-btn" type="button" onclick="sort_price_filter()">Filter</button>
                      </form>
                   </div>
                </div>
@@ -109,6 +107,7 @@
       </div>
    </div>
 </section>
+<!-- / product category -->
 
 <input type="hidden" id="qty" value="1"/>
   <form id="frmAddToCart">
@@ -117,12 +116,11 @@
     <input type="hidden" id="pqty" name="pqty"/>
     <input type="hidden" id="product_id" name="product_id"/>           
     @csrf
-  </form> 
+  </form>  
 
-  
   <form id="categoryFilter">
     <input type="hidden" id="sort" name="sort" value="{{$sort}}"/>
-   
-  
+    <input type="hidden" id="filter_price_start" name="filter_price_start" value="{{$filter_price_start}}"/>
+    <input type="hidden" id="filter_price_end" name="filter_price_end" value="{{$filter_price_end}}"/>
   </form> 
 @endsection
