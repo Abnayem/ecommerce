@@ -386,6 +386,16 @@ class FrontController extends Controller
     if(isset($result[0]))
     {
       $db_pwd = Crypt::decrypt($result[0]->password);
+      if($request->rememberme===null)
+      {
+        setcookie('login_email',$request->str_login_email,100);
+        setcookie('login_pwd',$request->str_login_password,100); 
+      }
+      else
+      {
+        setcookie('login_email',$request->str_login_email,time()+60*60*24*100);
+        setcookie('login_pwd',$request->str_login_password,time()+60*60*24*100);
+      }
       if($db_pwd==$request->str_login_password)
       {
         $request->session()->put('FRONT_USER_LOGIN',true);
