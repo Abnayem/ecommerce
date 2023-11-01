@@ -138,7 +138,7 @@
                       </span>
                     </li>
                   </ul>
-                  <a class="aa-cartbox-checkout aa-primary-btn" href="{{'/checkout'}}">Checkout</a>
+                  <a class="aa-cartbox-checkout aa-primary-btn" href="{{'/cart'}}">Cart</a>
                
               @endif
               </div>
@@ -307,7 +307,7 @@ else
             
           <label for="">Email address<span>*</span></label>
            
-            <input type="email" placeholder="email" name="str_login_email" value="{{$login_email}}" required>
+          <input type="email" placeholder="email" name="str_login_email" value="{{$login_email}}" required>
             
             <label for="">Password<span>*</span></label>
 

@@ -7,7 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+
+use Illuminate\Support\Facades\Cookie;
+use Redirect,Response;
 use Crypt;
+use Mail;
 class FrontController extends Controller
 {
     public function index(Request $request)
@@ -222,7 +226,7 @@ class FrontController extends Controller
     public function add_to_cart(Request $request)
     {
         if($request->session()->has('FRONT_USER_LOGIN')){
-            $uid=$request->session()->get('FRONT_USER_LOGIN');
+            $uid=$request->session()->get('FRONT_USER_ID');
             $user_type="Reg";
         }else{
             $uid=getUserTempId();
@@ -292,8 +296,9 @@ class FrontController extends Controller
     public function cart(Request $request)
     {  
         if($request->session()->has('FRONT_USER_LOGIN')){
-            $uid=$request->session()->get('FRONT_USER_LOGIN');
+            $uid=$request->session()->get('FRONT_USER_ID');
             $user_type="Reg";
+
         }else{
             $uid=getUserTempId();
             $user_type="Not-Reg";
@@ -362,64 +367,205 @@ class FrontController extends Controller
        if(!$valid->passes()){
             return response()->json(['status'=>'error','error'=>$valid->errors()->toArray()]);
        }else{
+            $rand_id=rand(111111111,999999999);
             $arr=[
                 "name"=>$request->name,
                 "email"=>$request->email,
                 "password"=>Crypt::encrypt($request->password),
                 "mobile"=>$request->mobile,
                 "status"=>1,
+                "is_verify"=>0,
+                "rand_id"=>$rand_id,
                 "created_at"=>date('Y-m-d h:i:s'),
                 "updated_at"=>date('Y-m-d h:i:s')
             ];
             $query=DB::table('customers')->insert($arr);
             if($query){
-                return response()->json(['status'=>'success','msg'=>"Registration successfully"]);
+
+                // $data=['name'=>$request->name,'rand_id'=>$rand_id];
+                // $user['to']=$request->email;
+                // Mail::send('front/email_verification',$data,function($messages) use ($user){
+                //     $messages->to($user['to']);
+                //     $messages->subject('Email Id Verification');
+                // });
+                return response()->json(['status'=>'success','msg'=>"Registration successfully."]);
             }
 
        }
     }
     public function login_process(Request $request)
     {
-      $result = DB::table('customers')
-      ->where(['email'=>$request->str_login_email])
-      ->get();
-    if(isset($result[0]))
-    {
-      $db_pwd = Crypt::decrypt($result[0]->password);
-      if($request->rememberme===null)
-      {
-        setcookie('login_email',$request->str_login_email,100);
-        setcookie('login_pwd',$request->str_login_password,100); 
-      }
-      else
-      {
-        setcookie('login_email',$request->str_login_email,time()+60*60*24*100);
-        setcookie('login_pwd',$request->str_login_password,time()+60*60*24*100);
-      }
-      if($db_pwd==$request->str_login_password)
-      {
-        $request->session()->put('FRONT_USER_LOGIN',true);
-        $request->session()->put('FRONT_USER_ID',$result[0]->id);
-        $request->session()->put('FRONT_USER_NAME',$result[0]->name);
-        $status = "success";
-        $msg = "";
-      } 
-      else
-      {
-        $status = "error";
-         $msg = "Please enter valid password";
-      } 
-      
+       
+        $result=DB::table('customers')  
+            ->where(['email'=>$request->str_login_email])
+            ->get(); 
+        
+        if(isset($result[0])){
+            $db_pwd=Crypt::decrypt($result[0]->password);
+            if($db_pwd==$request->str_login_password){
+
+                if($request->rememberme===null){
+                    setcookie('login_email',$request->str_login_email,100);
+                    setcookie('login_pwd',$request->str_login_password,100);
+                }else{
+                   setcookie('login_email',$request->str_login_email,time()+60*60*24*100);
+                   setcookie('login_pwd',$request->str_login_password,time()+60*60*24*100);
+                }
+
+                $request->session()->put('FRONT_USER_LOGIN',true);
+                $request->session()->put('FRONT_USER_ID',$result[0]->id);
+                $request->session()->put('FRONT_USER_NAME',$result[0]->name);
+                $status = "success";
+                $msg = "";
+
+                
+            }else{
+                $status="error";
+                $msg="Please enter valid password";
+            }
+        }else{
+            $status="error";
+            $msg="Please enter valid email id";
+        }
+       return response()->json(['status'=>$status,'msg'=>$msg]); 
+       //$request->password
+    
+       //$request->password
     }
-    else
+    public function checkout(Request $request)
     {
-        $status = "error";
-        $msg = "Please entern valid email id";
+        $result['cart_data']=getAddToCartTotalItem();
+
+        if(isset($result['cart_data'][0])){
+
+            if($request->session()->has('FRONT_USER_LOGIN')){
+                $uid=$request->session()->get('FRONT_USER_ID');
+                $customer_info=DB::table('customers')  
+                    ->where(['id'=> $uid])
+                     ->get(); 
+                $result['customers']['name']=$customer_info[0]->name;
+                $result['customers']['email']=$customer_info[0]->email;
+                $result['customers']['mobile']=$customer_info[0]->mobile;
+                $result['customers']['address']=$customer_info[0]->address;
+                $result['customers']['city']=$customer_info[0]->city;
+                $result['customers']['state']=$customer_info[0]->state;
+                $result['customers']['zip']=$customer_info[0]->zip;
+            }else{
+                $result['customers']['name']='';
+                $result['customers']['email']='';
+                $result['customers']['mobile']='';
+                $result['customers']['address']='';
+                $result['customers']['city']='';
+                $result['customers']['state']='';
+                $result['customers']['zip']='';
+            }
+
+            return view('front.checkout',$result);
+        }else{
+            return redirect('/');
+        }
     }
     
-  return response()->json(['status'=>$status,'msg'=>$msg]);
+    public function apply_coupon_code(Request $request)
+    {
+         $arr=apply_coupon_code($request->coupon_code);
+         $arr=json_decode($arr,true);
 
-      
+         return response()->json(['status'=>$arr['status'],'msg'=>$arr['msg'],'totalPrice'=>$arr['totalPrice']]);
+    }
+    public function remove_coupon_code(Request $request)
+    {
+        $totalPrice=0;
+        $result=DB::table('coupons')  
+        ->where(['code'=>$request->coupon_code])
+        ->get(); 
+        $getAddToCartTotalItem=getAddToCartTotalItem();
+        $totalPrice=0;
+        foreach($getAddToCartTotalItem as $list){
+            $totalPrice=$totalPrice+($list->qty*$list->price);
+        }  
+        
+        return response()->json(['status'=>'success','msg'=>'Coupon code removed','totalPrice'=>$totalPrice]); 
+    }
+    public function place_order(Request $request)
+    {
+        if($request->session()->has('FRONT_USER_LOGIN'))
+        {
+            $coupon_value=0;
+            if($request->coupon_code!=''){
+                $arr=apply_coupon_code($request->coupon_code);
+                $arr=json_decode($arr,true);
+                if($arr['status']=='success'){
+                    $coupon_value=$arr['coupon_code_value'];
+                }else{
+                    return response()->json(['status'=>'false','msg'=>$arr['msg']]);
+                }
+            }
+            $uid=$request->session()->get('FRONT_USER_ID');
+            $totalPrice=0;
+            $getAddToCartTotalItem=getAddToCartTotalItem();
+            
+          
+            foreach($getAddToCartTotalItem as $list){
+                $totalPrice=$totalPrice+($list->qty*$list->price);
+                
+            }  
+          
+            $arr=[
+                "customers_id"=>$uid,
+                "name"=>$request->name,
+                "email"=>$request->email,
+                "mobile"=>$request->mobile,
+                "address"=>$request->address,
+                "city"=>$request->city,
+                "state"=>$request->state,
+                "pincode"=>$request->zip,
+                "copun_code"=>$request->coupon_code,
+                "coupon_value"=>0,
+                "payment_type"=>$request->payment_type,
+                "payment_status"=>"Pending",
+                "total_amt"=>$totalPrice,
+                "order_status"=>1,
+                "added_on"=>date('Y-m-d h:i:s')
+            ];
+            $order_id=DB::table('orders')->insertGetId($arr);
+            if($order_id>0){
+                foreach($getAddToCartTotalItem as $list){
+                    $prductDetailArr['product_id']=$list->pid;
+                    $prductDetailArr['products_attr_id']=$list->attr_id;
+                    $prductDetailArr['price']=$list->price;
+                    $prductDetailArr['qty']=$list->qty;
+                    $prductDetailArr['orders_id']=$order_id;
+                    DB::table('order_details')->insert($prductDetailArr);
+                }  
+                DB::table('cart')->where(['user_id'=>$uid,'user_type'=>'Reg'])->delete();
+                $request->session()->put('ORDER_ID',$order_id);
+
+                $status="success";
+                $msg="Order placed";
+            }
+            else{
+                $status="false";
+                $msg="Please try after sometime";
+            }
+               
+        }
+        else
+        {
+            $status="false";
+            $msg="Please login to place order";
+        }
+        return response()->json(['status'=>$status,'msg'=>$msg]); 
+
+
+    }
+    public function order_placed(Request $request)
+    {
+        if($request->session()->has('ORDER_ID')){
+            return view('front.order_placed');
+        }else{
+            return redirect('/');
+        }
     }
 
 }

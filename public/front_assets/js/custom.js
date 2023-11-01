@@ -425,7 +425,7 @@ function add_to_cart(id,size_str_id,color_str_id){
 
         }
         html+='<li><span class="aa-cartbox-total-title">Total</span><span class="aa-cartbox-total-price"> '+totalPrice+'</span></li>';
-        html+='</ul><a class="aa-cartbox-checkout aa-primary-btn" href="checkout">Checkout</a>';
+        html+='</ul><a class="aa-cartbox-checkout aa-primary-btn" href="cart">Cart</a>';
         jQuery('.aa-cartbox-summary').html(html);
       }
     });
@@ -519,11 +519,77 @@ jQuery('#frmLogin').submit(function(e){
       }
       
       if(result.status=="success"){
-        window.location.href='/'
+        window.location.href=window.location.href;
         // jQuery('#frmLogin')[0].reset();
         // jQuery('#thank_you_msg').html(result.msg);
       }
     }
   });
 });
+function applyCouponCode(){
+  jQuery('#coupon_code_msg').html('');
+  jQuery('#order_place_msg').html('');
+  var coupon_code=jQuery('#coupon_code').val();
+  if(coupon_code!=''){
+    jQuery.ajax({
+      type:'post',
+      url:'/apply_coupon_code',
+      data:'coupon_code='+coupon_code+'&_token='+jQuery("[name='_token']").val(),
+      success:function(result){
+        console.log(result.status);
+        if(result.status=='success'){
+          jQuery('.show_coupon_box').removeClass('hide');
+          jQuery('#coupon_code_str').html(coupon_code);
+          jQuery('#total_price').html('Tk '+result.totalPrice);
+          jQuery('.apply_coupon_code_box').hide();
+        }else{
+          
+        }
+        jQuery('#coupon_code_msg').html(result.msg);
+      }
+    });
+  }else{
+    jQuery('#coupon_code_msg').html('Please enter coupon code');
+  }
+}
+function remove_coupon_code(){
+  jQuery('#coupon_code_msg').html('');
+  var coupon_code=jQuery('#coupon_code').val();
+  jQuery('#coupon_code').val('');
+  if(coupon_code!=''){
+    jQuery.ajax({
+      type:'post',
+      url:'/remove_coupon_code',
+      data:'coupon_code='+coupon_code+'&_token='+jQuery("[name='_token']").val(),
+      success:function(result){
+        if(result.status=='success'){
+          jQuery('.show_coupon_box').addClass('hide');
+          jQuery('#coupon_code_str').html('');
+          jQuery('#total_price').html('INR '+result.totalPrice);
+          jQuery('.apply_coupon_code_box').show();
+        }else{
+          
+        }
+        jQuery('#coupon_code_msg').html(result.msg);
+      }
+    });
+  }
+}
+jQuery('#frmPlaceOrder').submit(function(e){
+  jQuery('#order_place_msg').html("Please wait...");
+  e.preventDefault();
+  jQuery.ajax({
+    url:'/place_order',
+    data:jQuery('#frmPlaceOrder').serialize(),
+    type:'post',
+    success:function(result){
+      if(result.status=='success'){
+          window.location.href="/order_placed";
+      }
+      jQuery('#order_place_msg').html(result.msg);
+    }
+  });
+});
+
+
 
